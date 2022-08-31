@@ -692,6 +692,13 @@ class SubstitutionEnvironment:
                     mapping['CPPDEFINES'].append(name)
                 else:
                     mapping['CPPDEFINES'].append([t[0], '='.join(t[1:])])
+                    
+            # -U either means we clear our CPPDEFINES or inject as a generic flag
+            def remove_define(name, mapping=mapping):
+                if name in mapping['CPPDEFINES']:
+                    mapping['CPPDEFINES'].remove(name)
+                else:
+                    mapping['CCFLAGS'].append('-U' + name)
 
             # Loop through the flags and add them to the appropriate option.
             # This tries to strike a balance between checking for all possible
@@ -745,6 +752,8 @@ class SubstitutionEnvironment:
                     elif append_next_arg_to == '--param':
                         t = ('--param', arg)
                         mapping['CCFLAGS'].append(t)
+                    elif append_next_arg_to == '-U':
+                        remove_define(arg)
                     else:
                         mapping[append_next_arg_to].append(arg)
                     append_next_arg_to = None
@@ -782,6 +791,11 @@ class SubstitutionEnvironment:
                         mapping['LINKFLAGS'].append(arg)
                 elif arg[:4] == '-Wp,':
                     mapping['CPPFLAGS'].append(arg)
+                elif arg[:2] == '-U':
+                    if arg[2:]:
+                        remove_define(arg[2:])
+                    else:
+                        append_next_arg_to = arg
                 elif arg[:2] == '-D':
                     if arg[2:]:
                         append_define(arg[2:])
