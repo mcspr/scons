@@ -782,6 +782,11 @@ class SubstitutionEnvironment:
                         mapping['LINKFLAGS'].append(arg)
                 elif arg[:4] == '-Wp,':
                     mapping['CPPFLAGS'].append(arg)
+                elif arg[:2] == '-U':
+                    if arg[2:]:
+                        mapping['CCFLAGS'].append(arg)
+                    else:
+                        append_next_arg_to = 'CCFLAGS'
                 elif arg[:2] == '-D':
                     if arg[2:]:
                         append_define(arg[2:])
