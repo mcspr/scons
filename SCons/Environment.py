@@ -692,13 +692,20 @@ class SubstitutionEnvironment:
                     mapping['CPPDEFINES'].append(name)
                 else:
                     mapping['CPPDEFINES'].append([t[0], '='.join(t[1:])])
-                    
+
             # -U either means we clear our CPPDEFINES or inject as a generic flag
             def remove_define(name, mapping=mapping):
-                if name in mapping['CPPDEFINES']:
-                    mapping['CPPDEFINES'].remove(name)
-                else:
+                def match_name(v):
+                    if is_List(v):
+                        v = v[0]
+                    return v == name
+
+                appended = [v for v in mapping['CPPDEFINES'] if match_name(v)]
+                if not appended:
                     mapping['CCFLAGS'].append('-U' + name)
+                else:
+                    for f in found:
+                        mapping['CPPDEFINES'].remove(f)
 
             # Loop through the flags and add them to the appropriate option.
             # This tries to strike a balance between checking for all possible
