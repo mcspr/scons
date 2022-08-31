@@ -704,7 +704,7 @@ class SubstitutionEnvironment:
                 if not appended:
                     mapping['CCFLAGS'].append('-U' + name)
                 else:
-                    for f in found:
+                    for f in appended:
                         mapping['CPPDEFINES'].remove(f)
 
             # Loop through the flags and add them to the appropriate option.
