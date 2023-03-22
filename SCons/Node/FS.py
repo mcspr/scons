@@ -3709,8 +3709,12 @@ class File(Base):
         # Append this node's signature...
         sigs.append(self.get_contents_sig())
 
-        # ...and it's path
-        sigs.append(self.get_internal_path())
+        # ...and it's path, relative to build dir
+        env = self.get_build_env()
+        rpath = os.path.relpath(
+            self.get_internal_path(),
+            env.subst(env["BUILD_DIR"]))
+        sigs.append(rpath)
 
         # Merge this all into a single signature
         result = self.cachesig = hash_collect(sigs)
