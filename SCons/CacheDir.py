@@ -48,7 +48,7 @@ def CacheRetrieveFunc(target, source, env):
     fs = t.fs
     cd = env.get_CacheDir()
     cd.requests += 1
-    cachedir, cachefile = cd.cachepath(t)
+    cachedir, cachefile = cd.cachepath(t, env)
     if not fs.exists(cachefile):
         cd.CacheDebug('CacheRetrieve(%s):  %s not in cache\n', t, cachefile)
         return 1
@@ -71,7 +71,7 @@ def CacheRetrieveString(target, source, env):
     t = target[0]
     fs = t.fs
     cd = env.get_CacheDir()
-    cachedir, cachefile = cd.cachepath(t)
+    cachedir, cachefile = cd.cachepath(t, env)
     if t.fs.exists(cachefile):
         return "Retrieved `%s' from cache" % t.get_internal_path()
     return None
@@ -89,7 +89,8 @@ def CachePushFunc(target, source, env):
         return
     fs = t.fs
     cd = env.get_CacheDir()
-    cachedir, cachefile = cd.cachepath(t)
+
+    cachedir, cachefile = cd.cachepath(t, env)
     if fs.exists(cachefile):
         # Don't bother copying it if it's already there.  Note that
         # usually this "shouldn't happen" because if the file already
@@ -254,7 +255,7 @@ class CacheDir:
         if cachefile and os.path.exists(cachefile):
             return SCons.Util.hash_file_signature(cachefile, SCons.Node.FS.File.hash_chunksize)
 
-    def cachepath(self, node) -> tuple:
+    def cachepath(self, node, env = None) -> tuple:
         """Return where to cache a file.
 
         Given a Node, obtain the configured cache directory and
@@ -265,7 +266,15 @@ class CacheDir:
         if not self.is_enabled():
             return None, None
 
-        sig = node.get_cachedir_bsig()
+        if not env:
+            env = node.get_build_env()
+
+        node_dir = env.get("CACHEDIR_NODE_DIR", None)
+        if node_dir:
+            node_dir = env.Dir(node_dir)
+
+        sig = node.get_cachedir_bsig(node_dir)
+
         subdir = sig[:self.config['prefix_len']].upper()
         cachedir = os.path.join(self.path, subdir)
         return cachedir, os.path.join(cachedir, sig)

@@ -3685,7 +3685,7 @@ class File(Base):
         result = self.contentsig = hash_signature(executor.get_contents())
         return result
 
-    def get_cachedir_bsig(self):
+    def get_cachedir_bsig(self, dir):
         """
         Return the signature for a cached file, including
         its children.
@@ -3709,12 +3709,11 @@ class File(Base):
         # Append this node's signature...
         sigs.append(self.get_contents_sig())
 
-        # ...and it's path, relative to build dir
-        env = self.get_build_env()
-        rpath = os.path.relpath(
-            self.get_internal_path(),
-            env.subst(env["BUILD_DIR"]))
-        sigs.append(rpath)
+        # ...and path
+        if dir:
+            sigs.append(self.get_path(dir))
+        else:
+            sigs.append(self.get_internal_path())
 
         # Merge this all into a single signature
         result = self.cachesig = hash_collect(sigs)

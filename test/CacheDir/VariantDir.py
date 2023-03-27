@@ -40,6 +40,8 @@ cache = test.workpath('cache')
 cat_out = test.workpath('cat.out')
 
 test.write(['src', 'SConscript'], """\
+Import("*")
+
 def cat(env, source, target):
     target = str(target[0])
     with open('cat.out', 'a') as f:
@@ -48,7 +50,18 @@ def cat(env, source, target):
         for src in source:
             with open(str(src), "r") as f2:
                 f.write(f2.read())
-env = Environment(tools=[], BUILDERS={'Cat':Builder(action=cat)})
+
+args = {
+    "tools": [],
+    "BUILDERS": {'Cat': Builder(action=cat)}
+}
+
+try:
+    args["CACHEDIR_NODE_DIR"] = cachedir_node_dir
+except:
+    pass
+
+env = Environment(**args)
 env.Cat('aaa.out', 'aaa.in')
 env.Cat('bbb.out', 'bbb.in')
 env.Cat('ccc.out', 'ccc.in')
@@ -144,7 +157,40 @@ test.must_match('cat.out', "%s\n%s\n" % (build_bbb_out, build_all), mode='r')
 
 test.up_to_date(arguments = '.')
 
+test.run(arguments = '-c .')
+test.write('SConstruct', """\
+CacheDir('cache3')
+cachedir_node_dir = "build1"
+SConscript('src/SConscript',
+    variant_dir="build1",
+    duplicate=0,
+    exports='cachedir_node_dir')
+""")
 
+test.write(['src', 'ccc.in'], "ccc.in 3\n")
+
+test.run()
+test.up_to_date(arguments = '.')
+
+test.write('SConstruct', """\
+CacheDir('cache3')
+cachedir_node_dir = "build2"
+SConscript('src/SConscript',
+    variant_dir="build2",
+    duplicate=0,
+    exports='cachedir_node_dir')
+""")
+
+test.run(arguments = '-c .')
+test.run(stdout = test.wrap_stdout("""\
+Retrieved `build2/aaa.out' from cache
+Retrieved `build2/bbb.out' from cache
+Retrieved `build2/ccc.out' from cache
+Retrieved `build2/all' from cache
+"""))
+
+test.must_match(['build1', 'all'], "aaa.in\nbbb.in 2\nccc.in 3\n", mode='r')
+test.must_match(['build2', 'all'], "aaa.in\nbbb.in 2\nccc.in 3\n", mode='r')
 
 test.pass_test()
 
