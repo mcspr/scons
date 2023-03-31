@@ -578,6 +578,7 @@ class Base(SCons.Node.Node):
                  '_path_elements',
                  'dir',
                  'cwd',
+                 '_cachedir_bsig_path',
                  'duplicate',
                  '_local',
                  'sbuilder',
@@ -3685,15 +3686,18 @@ class File(Base):
         result = self.contentsig = hash_signature(executor.get_contents())
         return result
 
+    def set_cachedir_bsig_path(self, path):
+        self._cachedir_bsig_path = path
+
     def get_cachedir_bsig(self):
         """
         Return the signature for a cached file, including
         its children.
 
-        It adds the path of the cached file to the cache signature,
-        because multiple targets built by the same action will all
-        have the same build signature, and we have to differentiate
-        them somehow.
+        By default, it adds the path of the cached file to the cache
+        signature, because multiple targets built by the same action
+        will all have the same build signature, and we have to
+        differentiate them somehow.
 
         Signature should normally be string of hex digits.
         """
@@ -3710,7 +3714,13 @@ class File(Base):
         sigs.append(self.get_contents_sig())
 
         # ...and it's path
-        sigs.append(self.get_internal_path())
+        try:
+            path = self._cachedir_bsig_path
+        except AttributeError:
+            path = self.get_internal_path()
+
+        if path:
+            sigs.append(path)
 
         # Merge this all into a single signature
         result = self.cachesig = hash_collect(sigs)
